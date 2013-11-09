@@ -1,0 +1,119 @@
+Sub Main()
+Application.Calculation = xlCalculationManual
+Application.ScreenUpdating = False
+    For i = 30 To 96
+        setran = "A5:A97766"
+        Proccess setran, "2/10/2013", i
+
+    Next i
+    Application.Calculation = xlCalculationAutomatic
+    Application.ScreenUpdating = True
+End Sub
+
+Sub Proccess(selectrange, dat, interval)
+    Dim rng As Range
+    Dim row As Range
+    Set rng = Range(selectrange)
+    zone = "morning"
+    starttime = dat + "  9:14:00"
+    endtime = dat + " 12:00:00"
+     nowtimeinterval = DateDiff("s", dat, starttime)
+    opv = 0
+    clv = 0
+    hiv = 0
+    lov = 0
+    vol = 0
+    coun = 1
+    first = True
+    Worksheets.Add().Name = CStr(interval) + zone
+    
+For Each row In rng.Rows
+rowvdate = DateDiff("s", dat, row.Value)
+rowvalue = Range("C" + CStr(row.row))
+rowvolume = Range("D" + CStr(row.row))
+rowcondition = Range("E" + CStr(row.row))
+    If ((rowvdate >= DateDiff("s", dat, starttime)) And (IsEmpty(rowcondition)) And (rowvdate <= DateDiff("s", dat, endtime))) Then
+     
+     If ((Range("B" + CStr(row.row)) = "TRADE") And (rowvalue > 0)) Then
+     invalid = True
+     While (invalid)
+        Rem errorhandle
+        If (rowvdate < nowtimeinterval) Then
+            MsgBox "DATAERROR"
+            Exit Sub
+        End If
+        
+        Rem starthandle
+        If (rowvdate < nowtimeinterval + interval) Then
+            If (first) Then
+                opv = rowvalue
+                hiv = rowvalue
+                lov = rowvalue
+                clv = rowvalue
+                vol = vol + rowvolume
+                first = False
+            Else
+                If (rowvalue > hiv) Then
+                    hiv = rowvalue
+                End If
+                If (rowvalue < lov) Then
+                    lov = rowvalue
+                End If
+                vol = vol + rowvolume
+                clv = rowvalue
+            End If
+            invalid = False
+            
+        Else
+            first = True
+            Rem save
+            Worksheets(CStr(interval) + zone).Range("A" + CStr(coun)).Value = Format(DateAdd(("s"), nowtimeinterval, dat), "hh:mm:ss")
+            Worksheets(CStr(interval) + zone).Range("B" + CStr(coun)).Value = opv
+            Worksheets(CStr(interval) + zone).Range("C" + CStr(coun)).Value = hiv
+            Worksheets(CStr(interval) + zone).Range("D" + CStr(coun)).Value = lov
+            Worksheets(CStr(interval) + zone).Range("E" + CStr(coun)).Value = clv
+            Worksheets(CStr(interval) + zone).Range("F" + CStr(coun)).Value = vol
+            opv = clv
+            hiv = clv
+            lov = clv
+            vol = 0
+            nowtimeinterval = nowtimeinterval + interval
+            coun = coun + 1
+        End If
+        
+        Rem MsgBox DateDiff("s", dat, row.Value)
+        Rem MsgBox DateAdd(("s"), DateDiff("s", dat, row.Value), dat)
+
+     Wend
+     End If
+    End If
+    If (rowvdate > DateDiff("s", dat, endtime)) Then
+        Worksheets(CStr(interval) + zone).Range("A" + CStr(coun)).Value = Format(DateAdd(("s"), nowtimeinterval, dat), "hh:mm:ss")
+            Worksheets(CStr(interval) + zone).Range("B" + CStr(coun)).Value = opv
+            Worksheets(CStr(interval) + zone).Range("C" + CStr(coun)).Value = hiv
+            Worksheets(CStr(interval) + zone).Range("D" + CStr(coun)).Value = lov
+            Worksheets(CStr(interval) + zone).Range("E" + CStr(coun)).Value = clv
+            Worksheets(CStr(interval) + zone).Range("F" + CStr(coun)).Value = vol
+        If (zone = "morning") Then
+            zone = "afternoon"
+            starttime = dat + "  13:00:00"
+            endtime = dat + " 16:15:00"
+             nowtimeinterval = DateDiff("s", dat, starttime)
+    opv = 0
+    clv = 0
+    hiv = 0
+    lov = 0
+    vol = 0
+    coun = 1
+    first = True
+    Worksheets.Add().Name = CStr(interval) + zone
+        Else
+            Exit Sub
+        End If
+    End If
+Next row
+End Sub
+
+
+
+
